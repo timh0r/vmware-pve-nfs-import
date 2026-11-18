@@ -183,8 +183,8 @@ def setup_logging(log_dir: Path, dry_run: bool) -> Path:
     LOG.addHandler(file_handler)
     LOG.addHandler(console_handler)
 
-    LOG.info("Logging initialisiert: %s", log_file)
-    LOG.info("Dry-Run Modus: %s", dry_run)
+    LOG.info("Logging initialized: %s", log_file)
+    LOG.info("Dry-run mode: %s", dry_run)
     return log_file
 
 
@@ -264,7 +264,7 @@ def run(
             stderr=subprocess.PIPE,
         )
     except FileNotFoundError as exc:
-        LOG.error("Kommando nicht gefunden: %s", cmd[0] if cmd else cmd)
+        LOG.error("Command not found: %s", cmd[0] if cmd else cmd)
         if check:
             raise
         return subprocess.CompletedProcess(cmd, 127, stdout="", stderr=str(exc))
@@ -277,11 +277,11 @@ def run(
 
     if check and result.returncode != 0:
         rendered = " ".join(shlex.quote(part) for part in cmd)
-        console.print(f"[red]Kommando fehlgeschlagen:[/red] {rendered}")
+        console.print(f"[red]Command failed:[/red] {rendered}")
         console.print(f"[red]STDOUT:[/red]\n{result.stdout}")
         console.print(f"[red]STDERR:[/red]\n{result.stderr}")
         LOG.error("Command failed: %s", rendered)
-        raise RuntimeError("Kommando fehlgeschlagen")
+        raise RuntimeError("Command failed")
 
     return result
 
@@ -361,8 +361,8 @@ def build_disk_migration_script(plans: list[ImportPlan]) -> Path:
     script_path.write_text("\n".join(lines))
     script_path.chmod(0o750)
 
-    LOG.info("Disk-Migration-Script geschrieben: %s", script_path)
-    LOG.info("Disk-Migration-Log: %s", job_log)
+    LOG.info("Disk migration script written: %s", script_path)
+    LOG.info("Disk migration log: %s", job_log)
 
     return script_path
 
@@ -377,22 +377,22 @@ def start_disk_migration_detached(plans: list[ImportPlan]) -> None:
     - systemd-run
     """
     if RUNTIME.dry_run:
-        runner = get_detach_runner() or "kein detached runner gefunden"
+        runner = get_detach_runner() or "no detached runner found"
         console.print(
-            f"[cyan]DRY-RUN:[/cyan] Wuerde Disk-Migration detached starten "
-            f"ueber: {runner}"
+            f"[cyan]DRY-RUN:[/cyan] Would start disk migration in the background "
+            f"using: {runner}"
         )
         return
 
     runner = get_detach_runner()
     if not runner:
         console.print(
-            "[red]Kein Tool fuer detached Jobs gefunden.[/red]\n"
-            "Bitte installiere eines davon:\n"
+            "[red]No tool for background jobs found.[/red]\n"
+            "Please install one of the following:\n"
             "  apt install tmux\n"
             "  apt install screen\n\n"
-            "Alternative ohne interaktive Session:\n"
-            "  systemd-run ist normalerweise Teil von systemd."
+            "Alternative without an interactive session:\n"
+            "  systemd-run is usually included with systemd."
         )
         return
 
@@ -411,14 +411,14 @@ def start_disk_migration_detached(plans: list[ImportPlan]) -> None:
         ])
 
         console.print(Panel.fit(
-            "[bold green]Disk-Migration detached gestartet[/bold green]\n\n"
+            "[bold green]Disk migration started in the background[/bold green]\n\n"
             f"Runner: tmux\n"
             f"Session: {job_name}\n"
             f"Script: {script_path}\n\n"
-            f"Anzeigen:\n"
+            f"View session:\n"
             f"  tmux attach -t {job_name}\n\n"
-            f"Detach aus tmux:\n"
-            f"  CTRL-b danach d"
+            f"Detach from tmux:\n"
+            f"  CTRL-b, then d"
         ))
         return
 
@@ -431,14 +431,14 @@ def start_disk_migration_detached(plans: list[ImportPlan]) -> None:
         ])
 
         console.print(Panel.fit(
-            "[bold green]Disk-Migration detached gestartet[/bold green]\n\n"
+            "[bold green]Disk migration started in the background[/bold green]\n\n"
             f"Runner: screen\n"
             f"Session: {job_name}\n"
             f"Script: {script_path}\n\n"
-            f"Anzeigen:\n"
+            f"View session:\n"
             f"  screen -r {job_name}\n\n"
-            f"Detach aus screen:\n"
-            f"  CTRL-a danach d"
+            f"Detach from screen:\n"
+            f"  CTRL-a, then d"
         ))
         return
 
@@ -452,7 +452,7 @@ def start_disk_migration_detached(plans: list[ImportPlan]) -> None:
         ])
 
         console.print(Panel.fit(
-            "[bold green]Disk-Migration als systemd transient unit gestartet[/bold green]\n\n"
+            "[bold green]Disk migration started as a transient systemd unit[/bold green]\n\n"
             f"Runner: systemd-run\n"
             f"Unit: {job_name}.service\n"
             f"Script: {script_path}\n\n"
@@ -520,14 +520,14 @@ def parse_int_value(value: Optional[str], default: int, field_name: str) -> int:
     Falls ein Wert fehlt oder ungueltig ist, wird der Default verwendet und geloggt.
     """
     if value is None:
-        LOG.warning("%s fehlt in VMX, verwende Default: %s", field_name, default)
+        LOG.warning("%s is missing from VMX; using default: %s", field_name, default)
         return default
 
     try:
         return int(str(value).strip())
     except ValueError:
         LOG.warning(
-            "%s konnte nicht als Integer gelesen werden: %r, verwende Default: %s",
+            "%s could not be read as an integer: %r; using default: %s",
             field_name,
             value,
             default,
@@ -548,7 +548,7 @@ def find_flat_from_descriptor(descriptor_path: Path) -> Path:
 
         return flat_path.resolve()
 
-    raise ValueError(f"Keine Flat-VMDK im Descriptor gefunden: {descriptor_path}")
+    raise ValueError(f"No flat VMDK found in descriptor: {descriptor_path}")
 
 
 EXTENT_RE = re.compile(r'^(RW\s+\d+\s+\S+\s+)"([^"]+)"(.*)$')
@@ -589,12 +589,12 @@ def write_local_descriptor(
 
     if not changed:
         raise ValueError(
-            f"Keine Extent-Zeile im VMDK-Descriptor gefunden: {source_descriptor}"
+            f"No extent line found in VMDK descriptor: {source_descriptor}"
         )
 
     if dry_run:
         console.print(
-            f"[cyan]DRY-RUN:[/cyan] Würde VMDK-Descriptor schreiben: "
+            f"[cyan]DRY-RUN:[/cyan] Would write VMDK descriptor: "
             f"{local_descriptor} -> Flat: {flat_path}"
         )
         return
@@ -609,7 +609,7 @@ def normalize_vmware_uuid(value: Optional[str]) -> Optional[str]:
 
     cleaned = value.replace(" ", "").replace("-", "").lower()
     if len(cleaned) != 32:
-        LOG.warning("VMware UUID konnte nicht normalisiert werden: %s", value)
+        LOG.warning("Could not normalize VMware UUID: %s", value)
         return None
 
     return (
@@ -623,7 +623,7 @@ def normalize_vmware_uuid(value: Optional[str]) -> Optional[str]:
 
 def discover_vms(nfs_root: Path) -> list[Path]:
     """Sucht rekursiv nach .vmx Dateien auf dem NFS-Share."""
-    LOG.info("Suche VMX-Dateien unter: %s", nfs_root)
+    LOG.info("Searching for VMX files under: %s", nfs_root)
     return sorted(nfs_root.rglob("*.vmx"))
 
 def disk_sort_key(file_name: str) -> tuple[int, int, str]:
@@ -657,7 +657,7 @@ def get_file_size(path: Path) -> Optional[int]:
     try:
         return path.stat().st_size
     except OSError as exc:
-        LOG.warning("Dateigroesse konnte nicht gelesen werden: %s: %s", path, exc)
+        LOG.warning("Could not read file size: %s: %s", path, exc)
         return None
 
 def format_size(size_bytes: Optional[int]) -> str:
@@ -697,19 +697,19 @@ def extract_disks(data: dict[str, str], vmx_path: Path) -> list[VMwareDisk]:
 
         if SNAPSHOT_DISK_RE.search(file_name):
             console.print(
-                f"[yellow]Warnung: Snapshot-VMDK erkannt:[/yellow] {descriptor_path}"
+                f"[yellow]Warning: Snapshot VMDK detected:[/yellow] {descriptor_path}"
             )
-            LOG.warning("Snapshot-VMDK erkannt: %s", descriptor_path)
+            LOG.warning("Snapshot VMDK detected: %s", descriptor_path)
 
         if not descriptor_path.exists():
-            console.print(f"[yellow]Warnung: Descriptor nicht gefunden:[/yellow] {descriptor_path}")
-            LOG.warning("Descriptor nicht gefunden: %s", descriptor_path)
+            console.print(f"[yellow]Warning: Descriptor not found:[/yellow] {descriptor_path}")
+            LOG.warning("Descriptor not found: %s", descriptor_path)
             continue
 
         flat_path = find_flat_from_descriptor(descriptor_path)
         if not flat_path.exists():
-            console.print(f"[yellow]Warnung: Flat-VMDK nicht gefunden:[/yellow] {flat_path}")
-            LOG.warning("Flat-VMDK nicht gefunden: %s", flat_path)
+            console.print(f"[yellow]Warning: Flat VMDK not found:[/yellow] {flat_path}")
+            LOG.warning("Flat VMDK not found: %s", flat_path)
             continue
 
         disks.append(VMwareDisk(
@@ -746,7 +746,7 @@ def ask_scsi_port_for_disk(
 
     value = questionary.select(
         (
-            f"{vm_name}: SCSI-Port fuer {disk.descriptor_path.name} "
+            f"{vm_name}: SCSI port for {disk.descriptor_path.name} "
             f"[{format_size(disk.size_bytes)}] "
             f"({disk.vmware_key}, flat={disk.flat_path.name}):"
         ),
@@ -768,8 +768,8 @@ def ask_disk_scsi_mapping(vm: VMwareVM) -> None:
 
     console.print(Panel.fit(
         f"[bold]Disk/SCSI-Mapping:[/bold] {vm.name}\n\n"
-        "Die Basis-VMDK ohne Nummer wird standardmaessig auf scsi0 gelegt.\n"
-        "Du kannst die Ports hier bei Bedarf anpassen."
+        "The base VMDK without a number is assigned to scsi0 by default.\n"
+        "You can change the ports here if needed."
     ))
 
     used_ports: set[str] = set()
@@ -800,7 +800,7 @@ def extract_nics(data: dict[str, str]) -> list[VMwareNic]:
     for index in sorted(indexes):
         present = data.get(f"ethernet{index}.present", "TRUE").strip().lower()
         if present in {"false", "0", "no"}:
-            LOG.info("NIC ethernet%s ist in der VMX als nicht present markiert", index)
+            LOG.info("NIC ethernet%s is marked as not present in the VMX", index)
             continue
 
         virtual_dev = data.get(f"ethernet{index}.virtualDev")
@@ -836,7 +836,7 @@ def extract_nics(data: dict[str, str]) -> list[VMwareNic]:
         ))
 
     LOG.info(
-        "NICs erkannt: %s",
+        "NICs detected: %s",
         [
             f"NIC{n.index}: mac={n.mac or '-'} source={n.vmware_network} bridge={n.proxmox_bridge or '-'}"
             for n in nics
@@ -848,7 +848,7 @@ def extract_nics(data: dict[str, str]) -> list[VMwareNic]:
 def build_vm_from_vmx(vmx_path: Path) -> VMwareVM:
     data = parse_vmx(vmx_path)
     LOG.debug(
-        "VMX raw values fuer %s: memsize=%r memSize=%r numvcpus=%r numvCPUs=%r coresPerSocket=%r",
+        "VMX raw values for %s: memsize=%r memSize=%r numvcpus=%r numvCPUs=%r coresPerSocket=%r",
         vmx_path,
         data.get("memsize"),
         data.get("memSize"),
@@ -886,7 +886,7 @@ def build_vm_from_vmx(vmx_path: Path) -> VMwareVM:
     vm.nics = extract_nics(data)
 
     LOG.info(
-        "VM erkannt: name=%s vmx=%s memory=%s cores=%s disks=%s nics=%s firmware=%s",
+        "VM detected: name=%s vmx=%s memory=%s cores=%s disks=%s nics=%s firmware=%s",
         vm.name,
         vm.vmx_path,
         vm.memory_mib,
@@ -905,7 +905,7 @@ def build_vm_from_vmx(vmx_path: Path) -> VMwareVM:
 def get_used_vmids() -> set[int]:
     """Liest alle vorhandenen VMIDs aus qm list."""
     if RUNTIME.offline_test:
-        LOG.info("OFFLINE-TEST: Verwende Dummy-VMIDs")
+        LOG.info("OFFLINE TEST: Using dummy VMIDs")
         return {100, 101, 200}
 
     result = run(["qm", "list"], check=True, readonly=True)
@@ -916,14 +916,14 @@ def get_used_vmids() -> set[int]:
         if parts and parts[0].isdigit():
             used.add(int(parts[0]))
 
-    LOG.info("Verwendete VMIDs: %s", sorted(used))
+    LOG.info("VMIDs in use: %s", sorted(used))
     return used
 
 def suggest_next_vmid(used_vmids: set[int], start: int = 10) -> int:
     try:
         vmid = max(get_next_cluster_vmid(), start)
     except Exception as exc:
-        LOG.warning("pvesh /cluster/nextid fehlgeschlagen, fallback auf used_vmids: %s", exc)
+        LOG.warning("pvesh /cluster/nextid failed; falling back to used VMIDs: %s", exc)
         highest = max(used_vmids) if used_vmids else start - 1
         vmid = max(highest + 1, start)
 
@@ -935,7 +935,7 @@ def suggest_next_vmid(used_vmids: set[int], start: int = 10) -> int:
 
 def get_next_cluster_vmid() -> int:
     if RUNTIME.offline_test:
-        LOG.info("OFFLINE-TEST: Verwende Dummy nextid 201")
+        LOG.info("OFFLINE TEST: Using dummy next ID 201")
         return 201
 
     result = run(["pvesh", "get", "/cluster/nextid"], check=True, readonly=True)
@@ -944,7 +944,7 @@ def get_next_cluster_vmid() -> int:
 
 def get_used_cluster_vmids() -> set[int]:
     if RUNTIME.offline_test:
-        LOG.info("OFFLINE-TEST: Verwende Dummy-VMIDs")
+        LOG.info("OFFLINE TEST: Using dummy VMIDs")
         return {100, 101, 200}
 
     result = run(
@@ -965,7 +965,7 @@ def ask_vmid(default_vmid: int, used_vmids: set[int], vm_name: str) -> int:
     """Fragt eine VMID ab und verhindert Doppelbelegungen im aktuellen Plan."""
     while True:
         raw = questionary.text(
-            f"VMID fuer {vm_name}:",
+            f"VMID for {vm_name}:",
             default=str(default_vmid),
         ).ask()
 
@@ -975,11 +975,11 @@ def ask_vmid(default_vmid: int, used_vmids: set[int], vm_name: str) -> int:
         try:
             vmid = int(raw)
         except ValueError:
-            console.print("[red]Bitte eine gueltige numerische VMID eingeben.[/red]")
+            console.print("[red]Please enter a valid numeric VMID.[/red]")
             continue
 
         if vmid in used_vmids:
-            console.print(f"[red]VMID {vmid} ist bereits belegt oder im aktuellen Plan reserviert.[/red]")
+            console.print(f"[red]VMID {vmid} is already in use or reserved in the current plan.[/red]")
             continue
 
         return vmid
@@ -987,7 +987,7 @@ def ask_vmid(default_vmid: int, used_vmids: set[int], vm_name: str) -> int:
 def get_pve_storages() -> list[str]:
     """Gibt Proxmox Storages zurueck."""
     if RUNTIME.offline_test:
-        LOG.info("OFFLINE-TEST: Verwende Dummy-Storages")
+        LOG.info("OFFLINE TEST: Using dummy storage")
         return ["local-lvm", "ceph-vm", "nvme-zfs"]
     result = run(["pvesm", "status"], check=True, readonly=True)
     storages: list[str] = []
@@ -997,7 +997,7 @@ def get_pve_storages() -> list[str]:
         if parts:
             storages.append(parts[0])
 
-    LOG.info("Storages erkannt: %s", storages)
+    LOG.info("Storage detected: %s", storages)
     return storages
 
 
@@ -1009,7 +1009,7 @@ def get_pve_bridges() -> list[str]:
     sie zusaetzlich ueber die Cluster-API gelesen.
     """
     if RUNTIME.offline_test:
-        LOG.info("OFFLINE-TEST: Verwende Dummy-Bridges inklusive SDN-VNets")
+        LOG.info("OFFLINE TEST: Using dummy bridges, including SDN VNets")
         return ["vmbr0", "vmbr10", "vmbr20", "vnet-prod", "vnet-dmz"]
 
     bridges: set[str] = set()
@@ -1024,7 +1024,7 @@ def get_pve_bridges() -> list[str]:
         bridges.add(vnet)
 
     result = sorted(bridges)
-    LOG.info("Bridges/VNets erkannt: %s", result)
+    LOG.info("Bridges/VNets detected: %s", result)
     return result
 
 def get_pve_sdn_vnets() -> list[str]:
@@ -1033,7 +1033,7 @@ def get_pve_sdn_vnets() -> list[str]:
         return ["vnet-prod", "vnet-dmz"]
 
     if not command_exists("pvesh"):
-        LOG.warning("pvesh nicht gefunden, SDN-VNets koennen nicht abgefragt werden")
+        LOG.warning("pvesh not found; cannot query SDN VNets")
         return []
 
     result = run(
@@ -1043,13 +1043,13 @@ def get_pve_sdn_vnets() -> list[str]:
     )
 
     if result.returncode != 0 or not result.stdout.strip():
-        LOG.warning("SDN-VNet-Abfrage fehlgeschlagen: %s", result.stderr.strip())
+        LOG.warning("SDN VNet query failed: %s", result.stderr.strip())
         return []
 
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
-        LOG.warning("SDN-VNet JSON konnte nicht gelesen werden: %s", exc)
+        LOG.warning("Could not read SDN VNet JSON: %s", exc)
         return []
 
     vnets: list[str] = []
@@ -1058,7 +1058,7 @@ def get_pve_sdn_vnets() -> list[str]:
         if name:
             vnets.append(str(name))
 
-    LOG.info("SDN-VNets erkannt: %s", sorted(vnets))
+    LOG.info("SDN VNets detected: %s", sorted(vnets))
     return sorted(set(vnets))
 
 
@@ -1093,11 +1093,11 @@ def wizard_for_vm(
         show_single_plan_review(plan)
 
         action = questionary.select(
-            f"Einstellungen fuer {vm.name} uebernehmen?",
+            f"Apply settings for {vm.name}?",
             choices=[
-                questionary.Choice(title="Uebernehmen und weiter", value="accept"),
-                questionary.Choice(title="Zurueck / diese VM erneut bearbeiten", value="back"),
-                questionary.Choice(title="Abbrechen", value="abort"),
+                questionary.Choice(title="Apply and continue", value="accept"),
+                questionary.Choice(title="Back / edit this VM again", value="back"),
+                questionary.Choice(title="Cancel", value="abort"),
             ],
             default="accept",
         ).ask()
@@ -1112,10 +1112,10 @@ def wizard_for_vm(
         reset_vm_wizard_values(vm)
 
         if action == "abort":
-            console.print("[yellow]Abgebrochen.[/yellow]")
+            console.print("[yellow]Cancelled.[/yellow]")
             sys.exit(0)
 
-        console.print(f"[cyan]Wizard fuer {vm.name} wird erneut gestartet.[/cyan]")
+        console.print(f"[cyan]Restarting the wizard for {vm.name}.[/cyan]")
 
 
 def collect_vm_wizard_values(
@@ -1124,17 +1124,17 @@ def collect_vm_wizard_values(
     bridges: list[str],
     used_vmids: set[int],
 ) -> ImportPlan:
-    console.print(Panel.fit(f"[bold]VM vorbereiten:[/bold] {vm.name}"))
+    console.print(Panel.fit(f"[bold]Prepare VM:[/bold] {vm.name}"))
 
     if not vm.disks:
-        console.print(f"[yellow]Warnung: VM {vm.name} hat keine importierbaren VMDKs.[/yellow]")
+        console.print(f"[yellow]Warning: VM {vm.name} has no importable VMDKs.[/yellow]")
 
     default_vmid = suggest_next_vmid(used_vmids)
     vmid = ask_vmid(default_vmid, used_vmids, vm.name)
     used_vmids.add(vmid)
 
     target_storage = questionary.select(
-        f"Ziel-Storage fuer {vm.name}:",
+        f"Target storage for {vm.name}:",
         choices=storages,
     ).ask()
     if target_storage is None:
@@ -1144,14 +1144,14 @@ def collect_vm_wizard_values(
 
     if not vm.nics:
         console.print(
-            f"[yellow]Keine NICs in der VMX fuer {vm.name} erkannt. "
-            "Netzwerk-Mapping wird uebersprungen.[/yellow]"
+            f"[yellow]No NICs detected in the VMX for {vm.name}. "
+            "Network mapping will be skipped.[/yellow]"
         )
-        LOG.warning("Keine NICs in VMX erkannt: %s", vm.vmx_path)
+        LOG.warning("No NICs detected in VMX: %s", vm.vmx_path)
 
     for nic in vm.nics:
         bridge = questionary.select(
-            f"{vm.name}: {format_nic_source(nic)} auf Proxmox Bridge mappen:",
+            f"{vm.name}: Map {format_nic_source(nic)} to a Proxmox bridge:",
             choices=bridges,
         ).ask()
         if bridge is None:
@@ -1173,7 +1173,7 @@ def collect_vm_wizard_values(
             for disk in vm.disks
         ]
         boot_disk_bus = questionary.select(
-            f"Bootdisk fuer {vm.name}:",
+            f"Boot disk for {vm.name}:",
             choices=choices,
             default=suggested_boot_disk.proxmox_bus if suggested_boot_disk else None,
         ).ask()
@@ -1181,7 +1181,7 @@ def collect_vm_wizard_values(
             raise KeyboardInterrupt
 
     enable_guest_agent = bool(questionary.confirm(
-        f"QEMU Guest Agent fuer {vm.name} aktivieren?",
+        f"Enable QEMU Guest Agent for {vm.name}?",
         default=True,
     ).ask())
 
@@ -1190,14 +1190,14 @@ def collect_vm_wizard_values(
     create_tpm = False
 
     if is_efi:
-        console.print("[yellow]UEFI/EFI VM erkannt.[/yellow]")
+        console.print("[yellow]UEFI/EFI VM detected.[/yellow]")
         create_efi = bool(questionary.confirm(
-            "Neue Proxmox EFI-Disk erstellen?",
+            "Create a new Proxmox EFI disk?",
             default=True,
         ).ask())
 
         create_tpm = bool(questionary.confirm(
-            "Neues TPM 2.0 erstellen?",
+            "Create a new TPM 2.0 device?",
             default=True,
         ).ask())
 
@@ -1251,18 +1251,18 @@ def show_single_plan_review(plan: ImportPlan) -> None:
         f"RAM: {vm.memory_mib} MiB",
     ]
     if vm.memory_mib == 1024:
-        lines.append("WARNUNG: RAM ist 1024 MiB. Das kann ein VMX-Parsing-Fallback sein.")
+        lines.append("WARNING: RAM is 1024 MiB. This may be a VMX parsing fallback.")
 
     lines.extend([
         f"CPU: {vm.cores}",
         f"Firmware: {vm.firmware or 'bios'}",
-        f"Ziel-Storage: {plan.target_storage}",
-        f"Bootdisk: {plan.boot_disk_bus or '-'}",
-        f"QEMU Guest Agent: {'ja' if plan.enable_guest_agent else 'nein'}",
-        f"EFI-Disk erstellen: {'ja' if plan.create_efi else 'nein'}",
-        f"TPM erstellen: {'ja' if plan.create_tpm else 'nein'}",
+        f"Target storage: {plan.target_storage}",
+        f"Boot disk: {plan.boot_disk_bus or '-'}",
+        f"QEMU Guest Agent: {'yes' if plan.enable_guest_agent else 'no'}",
+        f"Create EFI disk: {'yes' if plan.create_efi else 'no'}",
+        f"Create TPM: {'yes' if plan.create_tpm else 'no'}",
         "",
-        "NIC Mapping:",
+        "NIC mapping:",
         format_nic_mapping(plan),
         "",
         "Disks:",
@@ -1274,9 +1274,9 @@ def show_single_plan_review(plan: ImportPlan) -> None:
                 f"{disk.vmware_key} | {disk.descriptor_path.name} -> {disk.flat_path}"
             )
     else:
-        lines.append("- keine Disks erkannt")
+        lines.append("- No disks detected")
 
-    console.print(Panel.fit("\n".join(lines), title="Wizard-Zusammenfassung"))
+    console.print(Panel.fit("\n".join(lines), title="Wizard Summary"))
 
 
 def format_nic_source(nic: VMwareNic) -> str:
@@ -1303,13 +1303,13 @@ def format_nic_mapping(plan: ImportPlan) -> str:
         return "-"
 
     return "\n".join(
-        f"NIC{nic.index} {nic.mac or '-'} -> {nic.proxmox_bridge or 'nicht zugewiesen'}"
+        f"NIC{nic.index} {nic.mac or '-'} -> {nic.proxmox_bridge or 'unassigned'}"
         for nic in plan.vm.nics
     )
 
 
 def show_plan(plans: list[ImportPlan]) -> None:
-    table = Table(title="Geplanter Import")
+    table = Table(title="Import Plan")
     table.add_column("VM")
     table.add_column("VMID")
     table.add_column("RAM")
@@ -1318,9 +1318,9 @@ def show_plan(plans: list[ImportPlan]) -> None:
     table.add_column("Disks")
     table.add_column("NICs")
     table.add_column("NIC Mapping")
-    table.add_column("Bootdisk")
-    table.add_column("QEMU Agent")
-    table.add_column("Ziel-Storage")
+    table.add_column("Boot Disk")
+    table.add_column("QEMU Guest Agent")
+    table.add_column("Target Storage")
 
     for plan in plans:
         vm = plan.vm
@@ -1334,7 +1334,7 @@ def show_plan(plans: list[ImportPlan]) -> None:
             str(len(vm.nics)),
             format_nic_mapping(plan),
             plan.boot_disk_bus or "-",
-            "ja" if plan.enable_guest_agent else "nein",
+            "yes" if plan.enable_guest_agent else "no",
             plan.target_storage,
         )
 
@@ -1346,10 +1346,10 @@ def show_disk_plan(plans: list[ImportPlan]) -> None:
     table.add_column("VM")
     table.add_column("VMID")
     table.add_column("Bus")
-    table.add_column("Groesse")
+    table.add_column("Size")
     table.add_column("VMware Descriptor")
     table.add_column("Flat VMDK")
-    table.add_column("Lokaler Descriptor")
+    table.add_column("Local Descriptor")
 
     for plan in plans:
         for disk in plan.vm.disks:
@@ -1373,7 +1373,7 @@ def show_nic_plan(plans: list[ImportPlan]) -> None:
     table.add_column("VMID")
     table.add_column("NIC")
     table.add_column("MAC")
-    table.add_column("VMware Quelle")
+    table.add_column("VMware Source")
     table.add_column("Proxmox Bridge")
     table.add_column("Proxmox Net")
 
@@ -1385,7 +1385,7 @@ def show_nic_plan(plans: list[ImportPlan]) -> None:
                 f"NIC{nic.index}",
                 nic.mac or "-",
                 format_nic_source(nic),
-                nic.proxmox_bridge or "nicht zugewiesen",
+                nic.proxmox_bridge or "unassigned",
                 f"net{nic.index}",
             )
 
@@ -1400,10 +1400,10 @@ def show_vm_status(plans: list[ImportPlan]) -> None:
 
     for plan in plans:
         if RUNTIME.offline_test:
-            status = "offline-test: nicht abgefragt"
+            status = "offline test: not queried"
         else:
             result = run(["qm", "status", str(plan.vmid)], check=False, readonly=True)
-            status = result.stdout.strip() if result.returncode == 0 else "unbekannt"
+            status = result.stdout.strip() if result.returncode == 0 else "unknown"
         table.add_row(plan.vm.name, str(plan.vmid), status)
 
     console.print(table)
@@ -1422,7 +1422,7 @@ def get_local_descriptor_path(plan: ImportPlan, disk: VMwareDisk) -> Path:
 
 def create_pve_vm(plan: ImportPlan) -> None:
     vm = plan.vm
-    LOG.info("Erstelle Proxmox VM: name=%s vmid=%s", vm.name, plan.vmid)
+    LOG.info("Creating Proxmox VM: name=%s vmid=%s", vm.name, plan.vmid)
 
     cmd = [
         "qm", "create", str(plan.vmid),
@@ -1467,7 +1467,7 @@ def attach_disks(plan: ImportPlan) -> None:
 
     if RUNTIME.dry_run:
         console.print(
-            f"[cyan]DRY-RUN:[/cyan] Würde Verzeichnis erstellen: {vm_image_dir}"
+            f"[cyan]DRY-RUN:[/cyan] Would create directory: {vm_image_dir}"
         )
     else:
         vm_image_dir.mkdir(parents=True, exist_ok=True)
@@ -1514,7 +1514,7 @@ def confirm_vmware_vm_is_down(plan: ImportPlan) -> bool:
     """
     if RUNTIME.auto_yes:
         LOG.warning(
-            "Auto-Yes aktiv: VMware-Shutdown-Bestaetigung fuer VM %s (%s) uebersprungen",
+            "Auto-Yes enabled: skipping VMware shutdown confirmation for VM %s (%s)",
             plan.vm.name,
             plan.vmid,
         )
@@ -1526,16 +1526,16 @@ def confirm_vmware_vm_is_down(plan: ImportPlan) -> bool:
             f"- {disk.proxmox_bus}: {disk.descriptor_path.name} -> {disk.flat_path}"
         )
 
-    disks_text = "\n".join(disk_lines) if disk_lines else "- keine Disks erkannt"
+    disks_text = "\n".join(disk_lines) if disk_lines else "- No disks detected"
 
     console.print(Panel.fit(
-        "[bold red]VMware-Shutdown pruefen[/bold red]\n\n"
+        "[bold red]Verify VMware shutdown[/bold red]\n\n"
         f"VM: {plan.vm.name}\n"
         f"Proxmox VMID: {plan.vmid}\n"
         f"VMX: {plan.vm.vmx_path}\n\n"
         "Diese VM darf in Proxmox erst gestartet werden, wenn die VMware-VM "
         "in ESXi/vCenter sauber ausgeschaltet ist.\n\n"
-        "Bitte pruefen:\n"
+        "Please verify:\n"
         "- VMware-VM ist powered off\n"
         "- keine aktiven Snapshots / keine Snapshot-Chain\n"
         "- keine Schreibzugriffe auf die VMDK-Dateien\n"
@@ -1544,26 +1544,26 @@ def confirm_vmware_vm_is_down(plan: ImportPlan) -> bool:
     ))
 
     answer = questionary.text(
-        f"Ist die VMware-VM '{plan.vm.name}' ausgeschaltet? Zum Start exakt 'ja' eingeben, sonst wird diese VM uebersprungen:",
+        f"Is VMware VM '{plan.vm.name}' powered off? Type exactly 'yes' to start it; otherwise this VM will be skipped:",
     ).ask()
 
     if answer is None:
         raise KeyboardInterrupt
 
-    if answer.strip().lower() == "ja":
+    if answer.strip().lower() == "yes":
         LOG.info(
-            "VMware-Shutdown bestaetigt: VM %s (%s)",
+            "VMware shutdown confirmed: VM %s (%s)",
             plan.vm.name,
             plan.vmid,
         )
         return True
 
     console.print(
-        f"[yellow]Start von {plan.vm.name} ({plan.vmid}) uebersprungen: "
-        "VMware-Shutdown wurde nicht bestaetigt.[/yellow]"
+        f"[yellow]Skipped starting {plan.vm.name} ({plan.vmid}): "
+        "VMware shutdown was not confirmed.[/yellow]"
     )
     LOG.warning(
-        "Start uebersprungen, VMware-Shutdown nicht bestaetigt: VM %s (%s)",
+        "Skipped start because VMware shutdown was not confirmed: VM %s (%s)",
         plan.vm.name,
         plan.vmid,
     )
@@ -1584,7 +1584,7 @@ def start_vms(plans: list[ImportPlan]) -> list[ImportPlan]:
         if not confirm_vmware_vm_is_down(plan):
             continue
 
-        console.print(f"[bold]Starte VM {plan.vm.name} ({plan.vmid})...[/bold]")
+        console.print(f"[bold]Starting VM {plan.vm.name} ({plan.vmid})...[/bold]")
         run(["qm", "start", str(plan.vmid)], check=False)
         started_or_approved.append(plan)
 
@@ -1617,8 +1617,8 @@ def move_disks_one_by_one(plans: list[ImportPlan]) -> None:
     for plan in plans:
         for disk in plan.vm.disks:
             console.print(
-                f"[bold]Migriere {plan.vm.name} {disk.proxmox_bus} "
-                f"nach {plan.target_storage}...[/bold]"
+                f"[bold]Migrating {plan.vm.name} {disk.proxmox_bus} "
+                f"to {plan.target_storage}...[/bold]"
             )
             move_disk(plan.vmid, disk.proxmox_bus, plan.target_storage)
 
@@ -1681,7 +1681,7 @@ def save_state(plans: list[ImportPlan]) -> Path:
     except PermissionError:
         state_dir = Path.cwd() / "state"
         state_dir.mkdir(parents=True, exist_ok=True)
-        LOG.warning("State-Verzeichnis nicht beschreibbar, nutze Fallback: %s", state_dir)
+        LOG.warning("State directory is not writable; using fallback: %s", state_dir)
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     suffix = "dryrun" if RUNTIME.dry_run else "run"
@@ -1695,7 +1695,7 @@ def save_state(plans: list[ImportPlan]) -> Path:
     }
 
     state_file.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
-    LOG.info("State geschrieben: %s", state_file)
+    LOG.info("State written: %s", state_file)
     return state_file
 
 
@@ -1705,47 +1705,47 @@ def save_state(plans: list[ImportPlan]) -> Path:
 
 def require_root() -> None:
     if RUNTIME.offline_test:
-        LOG.info("OFFLINE-TEST: Root-Prüfung übersprungen")
+        LOG.info("OFFLINE TEST: Skipping root check")
         return
 
     if RUNTIME.dry_run:
-        LOG.info("Dry-Run: root check wird nicht erzwungen")
+        LOG.info("Dry run: root check is not enforced")
         return
 
     if os.geteuid() != 0:
-        console.print("[red]Dieses Script muss als root auf dem Proxmox Host laufen.[/red]")
+        console.print("[red]This script must run as root on the Proxmox host.[/red]")
         sys.exit(1)
 
 
 def require_commands(commands: list[str]) -> None:
     if RUNTIME.offline_test:
-        LOG.info("OFFLINE-TEST: Kommando-Prüfung übersprungen: %s", commands)
+        LOG.info("OFFLINE TEST: Skipping command check: %s", commands)
         return
     
     for command in commands:
         if not command_exists(command):
-            console.print(f"[red]Benötigtes Kommando nicht gefunden:[/red] {command}")
+            console.print(f"[red]Required command not found:[/red] {command}")
             sys.exit(1)
 
 
 def validate_nfs_root(nfs_root: Path) -> None:
     if not nfs_root.exists():
-        console.print(f"[red]NFS-Pfad existiert nicht:[/red] {nfs_root}")
+        console.print(f"[red]NFS path does not exist:[/red] {nfs_root}")
         sys.exit(1)
 
     if not nfs_root.is_dir():
-        console.print(f"[red]NFS-Pfad ist kein Verzeichnis:[/red] {nfs_root}")
+        console.print(f"[red]NFS path is not a directory:[/red] {nfs_root}")
         sys.exit(1)
 
 
 def confirm_or_abort(message: str, default: bool = False) -> None:
     if RUNTIME.auto_yes:
-        LOG.info("Auto-Yes aktiv: %s", message)
+        LOG.info("Auto-Yes enabled: %s", message)
         return
 
     confirmed = questionary.confirm(message, default=default).ask()
     if not confirmed:
-        console.print("[yellow]Abgebrochen.[/yellow]")
+        console.print("[yellow]Cancelled.[/yellow]")
         sys.exit(0)
 
 
@@ -1755,46 +1755,46 @@ def confirm_or_abort(message: str, default: bool = False) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="VMware NFS Importer fuer Proxmox VE"
+        description="VMware NFS Importer for Proxmox VE"
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Keine veraendernden Aktionen ausfuehren, nur planen und loggen.",
+        help="Do not make changes; only plan and log actions.",
     )
     parser.add_argument(
         "--nfs-root",
         type=Path,
         default=None,
-        help="Pfad zum gemounteten VMware-NFS-Share.",
+        help="Path to the mounted VMware NFS share.",
     )
     parser.add_argument(
         "--state-dir",
         type=Path,
         default=DEFAULT_STATE_DIR,
-        help="Verzeichnis fuer State-Dateien.",
+        help="Directory for state files.",
     )
     parser.add_argument(
         "--log-dir",
         type=Path,
         default=DEFAULT_LOG_DIR,
-        help="Verzeichnis fuer Logdateien.",
+        help="Directory for log files.",
     )
     parser.add_argument(
         "--descriptor-base-dir",
         type=Path,
         default=DEFAULT_DESCRIPTOR_BASE_DIR,
-        help="Basisverzeichnis fuer lokale VMDK-Descriptoren.",
+        help="Base directory for local VMDK descriptors.",
     )
     parser.add_argument(
         "--yes",
         action="store_true",
-        help="Bestaetigungsdialoge soweit moeglich automatisch bestaetigen.",
+        help="Automatically confirm prompts where possible.",
     )
     parser.add_argument(
     "--offline-test",
     action="store_true",
-    help="Offline-Testmodus ohne Proxmox-Kommandos, Root-Check und Host-Änderungen.",
+    help="Offline test mode without Proxmox commands, root check, or host changes.",
     )
     return parser.parse_args()
 
@@ -1815,25 +1815,25 @@ def main() -> None:
     require_commands(["qm", "pvesm"])
     runner = get_detach_runner()
     if runner:
-        LOG.info("Detached Migration Runner erkannt: %s", runner)
+        LOG.info("Background migration runner detected: %s", runner)
     else:
-        LOG.warning("Kein detached Migration Runner gefunden")
+        LOG.warning("No background migration runner found")
 
-    title = "VMware NFS Importer fuer Proxmox VE"
+    title = "VMware NFS Importer for Proxmox VE"
     if RUNTIME.dry_run:
         title += " - DRY-RUN"
 
     console.print(Panel.fit(
         f"[bold]{title}[/bold]\n\n"
-        "Dieses Tool importiert VMware-VMs, deren VMDKs auf einem NFS-Share liegen.\n"
-        "Die VMs werden zuerst direkt ab NFS gestartet.\n"
-        "Danach koennen die Disks einzeln auf den Ziel-Storage migriert werden.\n\n"
-        f"Logdatei: {log_file}"
+        "This tool imports VMware VMs whose VMDKs are stored on an NFS share.\n"
+        "The VMs are started directly from NFS first.\n"
+        "The disks can then be migrated individually to the target storage.\n\n"
+        f"Log file: {log_file}"
     ))
 
     if RUNTIME.nfs_root is None:
         nfs_root_input = questionary.text(
-            "Pfad zum gemounteten NFS-Share:",
+            "Path to the mounted NFS share:",
             default=str(DEFAULT_NFS_ROOT),
         ).ask()
         if nfs_root_input is None:
@@ -1846,7 +1846,7 @@ def main() -> None:
 
     vmx_files = discover_vms(nfs_root)
     if not vmx_files:
-        console.print("[red]Keine .vmx Dateien gefunden.[/red]")
+        console.print("[red]No .vmx files found.[/red]")
         sys.exit(1)
 
     choices = [
@@ -1855,12 +1855,12 @@ def main() -> None:
     ]
 
     selected_vmx = questionary.checkbox(
-        "Welche VMs sollen importiert werden?",
+        "Which VMs should be imported?",
         choices=choices,
     ).ask()
 
     if not selected_vmx:
-        console.print("[yellow]Keine VM ausgewählt.[/yellow]")
+        console.print("[yellow]No VM selected.[/yellow]")
         sys.exit(0)
 
     storages = get_pve_storages()
@@ -1868,11 +1868,11 @@ def main() -> None:
     used_vmids = get_used_vmids()
 
     if not storages:
-        console.print("[red]Keine Proxmox Storages gefunden.[/red]")
+        console.print("[red]No Proxmox storage found.[/red]")
         sys.exit(1)
 
     if not bridges:
-        console.print("[red]Keine Proxmox Bridges gefunden.[/red]")
+        console.print("[red]No Proxmox bridges found.[/red]")
         sys.exit(1)
 
     plans: list[ImportPlan] = []
@@ -1888,13 +1888,13 @@ def main() -> None:
     confirm_or_abort("Plan so übernehmen und VM erstellen?", default=False)
 
     state_file = save_state(plans)
-    console.print(f"[green]State gespeichert:[/green] {state_file}")
+    console.print(f"[green]State saved:[/green] {state_file}")
 
     if RUNTIME.dry_run:
         console.print(Panel.fit(
             "[bold cyan]DRY-RUN aktiv[/bold cyan]\n\n"
-            "Es werden keine Proxmox-VMs erstellt, keine Descriptoren geschrieben, "
-            "keine VMs gestartet und keine Disks migriert."
+            "No Proxmox VMs will be created, no descriptors written, "
+            "no VMs started, and no disks migrated."
         ))
 
     for plan in plans:
@@ -1904,29 +1904,29 @@ def main() -> None:
     show_vm_status(start_approved_plans if start_approved_plans else plans)
 
     if not start_approved_plans:
-        console.print("[yellow]Keine VM wurde zum Start freigegeben. Disk-Migration wird nicht angeboten.[/yellow]")
-        LOG.warning("Keine VM wurde zum Start freigegeben")
-        console.print("[green]Fertig.[/green]")
-        LOG.info("Fertig ohne gestartete VMs")
+        console.print("[yellow]No VMs were approved to start. Disk migration is unavailable.[/yellow]")
+        LOG.warning("No VMs were approved to start")
+        console.print("[green]Done.[/green]")
+        LOG.info("Finished without starting any VMs")
         return
 
     migration_mode = "skip"
 
     detached_runner = get_detach_runner()
     detached_title = (
-        f"Ja, detached im Hintergrund starten ({detached_runner})"
+        f"Yes, start in the background ({detached_runner})"
         if detached_runner
-        else "Ja, detached im Hintergrund starten (kein Runner gefunden)"
+        else "Yes, start in the background (no runner found)"
     )
 
     if RUNTIME.auto_yes:
         migration_mode = "skip"
     else:
         migration_mode = questionary.select(
-            "Disk-Migration auf Ziel-Storage starten?",
+            "Start disk migration to target storage?",
             choices=[
-                questionary.Choice(title="Nein, jetzt nicht migrieren", value="skip"),
-                questionary.Choice(title="Ja, im Vordergrund ausfuehren", value="foreground"),
+                questionary.Choice(title="No, do not migrate now", value="skip"),
+                questionary.Choice(title="Yes, run in the foreground", value="foreground"),
                 questionary.Choice(title=detached_title, value="detached"),
             ],
             default="skip",
@@ -1942,18 +1942,18 @@ def main() -> None:
     elif migration_mode == "detached":
         start_disk_migration_detached(start_approved_plans)
 
-    console.print("[green]Fertig.[/green]")
-    LOG.info("Fertig")
+    console.print("[green]Done.[/green]")
+    LOG.info("Done")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        console.print("\n[yellow]Abgebrochen durch Benutzer.[/yellow]")
-        LOG.warning("Abgebrochen durch Benutzer")
+        console.print("\n[yellow]Cancelled by user.[/yellow]")
+        LOG.warning("Cancelled by user")
         sys.exit(130)
     except Exception as exc:
-        console.print(f"\n[red]Fehler:[/red] {exc}")
-        LOG.exception("Unbehandelter Fehler")
+        console.print(f"\n[red]Error:[/red] {exc}")
+        LOG.exception("Unhandled error")
         sys.exit(1)
